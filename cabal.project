@@ -1,0 +1,14 @@
+packages: .
+
+source-repository-package
+    type: git
+    location: https://github.com/lucasdicioccio/prodapi.git
+    tag: 3ef9d83412550e3b5dbbfcac1c8a9d058ac5ff16
+    subdir: prodapi
+
+source-repository-package
+    type: git
+    location: https://github.com/kazu-yamamoto/dns.git
+    tag: 26c88f775247fdcc32fb4fe750ae22a5a1a6750e
+  
+  
