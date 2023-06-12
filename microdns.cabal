@@ -47,7 +47,7 @@ executable microdns
                     , bytestring
                     , text
                     , prometheus-client
-                    , dns
+                    , dns >= 4.1.1
                     , network
                     , megaparsec
                     , optparse-generic
