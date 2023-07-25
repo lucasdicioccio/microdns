@@ -75,6 +75,12 @@ setcap 'cap_net_bind_service=+ep' /usr/local/bin/microdns
 You should also consider rate-limiting incoming/outgoing UDP as UDP-DNS is
 prone to abuse.
 
+An example rate-limit is, using netfilter.
+
+```console
+nft add rule inet filter input udp dport 53 limit rate over 10/second drop
+```
+
 ## Dynamic registration
 
 There are only two available API-based registration:
