@@ -33,6 +33,7 @@ type Apex = ByteString
 
 type Api = AutoRegisterApi
   :<|> RegisterTextApi
+  :<|> ListRegistrationsApi
 
 type DNSLeafName = Text
 
@@ -44,7 +45,7 @@ type AutoRegisterApi =
     :> RemoteHost
     :> Header "x-forwarded-for" Text
     :> Header "x-microdns-hmac" ChallengeAttempt
-    :> Post '[JSON] RegistrationResult
+    :> Post '[JSON] AutoRegistrationResult
 
 type RegisterTextApi =
   Summary "registers a text (e.g., for an ACME challenge)"
@@ -53,22 +54,37 @@ type RegisterTextApi =
     :> Capture "dns-leaf" DNSLeafName
     :> Capture "token" Text
     :> Header "x-microdns-hmac" ChallengeAttempt
-    :> Post '[JSON] Text
+    :> Post '[JSON] (DNSLeafName, Text)
+
+type ListRegistrationsApi =
+  Summary "list registrations"
+    :> "registrations"
+    :> Header "x-microdns-hmac" ChallengeAttempt
+    :> Get '[JSON] Registrations
+
 
 type ChallengeAttempt = Text
 
-data RegistrationResult
-  = RegistrationResult
-  { registerdIP :: Text
+data AutoRegistrationResult
+  = AutoRegistrationResult
+  { registeredLeaf :: DNSLeafName
+  , registeredIP :: Text
   }
   deriving (Show, Generic)
-instance ToJSON RegistrationResult
+instance ToJSON AutoRegistrationResult
 
 data RegistrationFailedReason
   = AuthError
   | ProxiedError
   | IPLookupError
   deriving (Show)
+
+data Registrations
+  = Registrations
+  { registrations :: [String]
+  }
+  deriving (Show, Generic)
+instance ToJSON Registrations
 
 data Trace
   = RegistrationSuccess DNS.ResourceRecord
@@ -152,8 +168,9 @@ handleDynamicRegistration :: Runtime -> Server Api
 handleDynamicRegistration runtime =
   handleAutoRegister runtime
   :<|> handleTextRegister runtime
+  :<|> handleListRegistrations runtime
 
-handleAutoRegister :: Runtime -> DNSLeafName -> SockAddr -> Maybe Text -> Maybe ChallengeAttempt -> Handler RegistrationResult
+handleAutoRegister :: Runtime -> DNSLeafName -> SockAddr -> Maybe Text -> Maybe ChallengeAttempt -> Handler AutoRegistrationResult
 handleAutoRegister rt _ _ (Just _) _ = do
   liftIO $ do
     Prometheus.withLabel (cnt_registrations $ counters rt) "error" Prometheus.incCounter
@@ -185,9 +202,9 @@ handleAutoRegister rt dnsleaf sockaddr Nothing (Just hmac) = do
           rr <- addRRa success rt dnsleaf ip
           runTracer (tracer rt) $ RegistrationSuccess rr
           Prometheus.withLabel (cnt_registrations $ counters rt) "success" Prometheus.incCounter
-          pure $ RegistrationResult (Text.pack $ show ip)
+          pure $ AutoRegistrationResult dnsleaf (Text.pack $ show ip)
 
-handleTextRegister :: Runtime -> DNSLeafName -> Text -> Maybe ChallengeAttempt -> Handler Text
+handleTextRegister :: Runtime -> DNSLeafName -> Text -> Maybe ChallengeAttempt -> Handler (DNSLeafName, Text)
 handleTextRegister rt dnsleaf textval Nothing = do
   liftIO $ do
     Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
@@ -205,7 +222,12 @@ handleTextRegister rt dnsleaf textval (Just hmac) = do
     Just success -> liftIO $ do
       rr <- addText success rt dnsleaf textval
       runTracer (tracer rt) $ RegistrationSuccess rr
-      pure textval
+      pure (dnsleaf, textval)
+
+handleListRegistrations :: Runtime -> Maybe ChallengeAttempt -> Handler Registrations
+handleListRegistrations rt _ = do
+  rrs <- liftIO $ readRRs rt
+  pure $ Registrations $ map show rrs
 
 type HashedPart = Text
 
