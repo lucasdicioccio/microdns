@@ -29,7 +29,7 @@ import Prod.Background as Background
 import qualified Prometheus as Prometheus
 import qualified Crypto.Hash.SHA256 as HMAC256
 
-type Apex = ByteString
+import MicroDNS.Handler (Apex(..), apexFromText)
 
 type Api = AutoRegisterApi
   :<|> RegisterTextApi
@@ -42,6 +42,7 @@ type AutoRegisterApi =
     :> "register"
     :> "auto"
     :> Capture "dns-leaf" DNSLeafName
+    :> QueryParam "apex" Text
     :> RemoteHost
     :> Header "x-forwarded-for" Text
     :> Header "x-microdns-hmac" ChallengeAttempt
@@ -53,6 +54,7 @@ type RegisterTextApi =
     :> "txt"
     :> Capture "dns-leaf" DNSLeafName
     :> Capture "token" Text
+    :> QueryParam "apex" Text
     :> Header "x-microdns-hmac" ChallengeAttempt
     :> Post '[JSON] (DNSLeafName, Text)
 
@@ -128,41 +130,38 @@ initRuntime tracer secret apex = do
 readRRs :: Runtime -> IO [DNS.ResourceRecord]
 readRRs = readIORef . rrs
 
-addRRa :: ActionAuthorized -> Runtime -> DNSLeafName -> IP.IP -> IO DNS.ResourceRecord
-addRRa _ rt leaf val = do
-    atomicModifyIORef' (rrs rt) (\xs -> (insertRR xs, ()))
+addRRa :: ActionAuthorized -> Runtime -> Apex -> DNSLeafName -> IP.IP -> IO DNS.ResourceRecord
+addRRa _ rt apex leaf val = do
+    atomicModifyIORef' (rrs rt) (\xs -> (insertRR newRecord xs, ()))
     pure newRecord
   where
     fqdn :: ByteString
-    fqdn = mconcat [Text.encodeUtf8 leaf, ".",  dnsApex rt]
+    fqdn = mconcat [Text.encodeUtf8 leaf, ".",  getApex apex]
 
     newRecord :: DNS.ResourceRecord
     newRecord = case val of
       IP.IPv4 val -> DNS.ResourceRecord fqdn DNS.A DNS.classIN 300 $ DNS.RD_A val
       IP.IPv6 val -> DNS.ResourceRecord fqdn DNS.AAAA DNS.classIN 300 $ DNS.RD_AAAA val
 
-    insertRR :: [DNS.ResourceRecord] -> [DNS.ResourceRecord]
-    insertRR xs = newRecord : List.filter otherFqdn xs
+insertRR :: DNS.ResourceRecord -> [DNS.ResourceRecord] -> [DNS.ResourceRecord]
+insertRR x xs = x : List.filter (otherFqdn x) xs
 
-    otherFqdn :: DNS.ResourceRecord -> Bool
-    otherFqdn (DNS.ResourceRecord qdn _ _ _ _) = fqdn /= qdn
+otherFqdn :: DNS.ResourceRecord -> DNS.ResourceRecord -> Bool
+otherFqdn
+  (DNS.ResourceRecord qdn2 _ _ _ _)
+  (DNS.ResourceRecord qdn1 _ _ _ _) = qdn1 /= qdn2
 
-addText :: ActionAuthorized -> Runtime -> DNSLeafName -> Text -> IO DNS.ResourceRecord
-addText _ rt leaf val = do
-    atomicModifyIORef' (rrs rt) (\xs -> (insertRR xs, ()))
+addText :: ActionAuthorized -> Runtime -> Apex -> DNSLeafName -> Text -> IO DNS.ResourceRecord
+addText _ rt apex leaf val = do
+    atomicModifyIORef' (rrs rt) (\xs -> (insertRR newRecord xs, ()))
     pure newRecord
   where
     fqdn :: ByteString
-    fqdn = mconcat [Text.encodeUtf8 leaf, ".",  dnsApex rt]
+    fqdn = mconcat [Text.encodeUtf8 leaf, ".", getApex apex]
 
     newRecord :: DNS.ResourceRecord
     newRecord =
       DNS.ResourceRecord fqdn DNS.TXT DNS.classIN 300 $ DNS.RD_TXT $ Text.encodeUtf8 val
-
-    insertRR xs = newRecord : List.filter otherFqdn xs
-
-    otherFqdn :: DNS.ResourceRecord -> Bool
-    otherFqdn (DNS.ResourceRecord qdn _ _ _ _) = fqdn /= qdn
 
 handleDynamicRegistration :: Runtime -> Server Api
 handleDynamicRegistration runtime =
@@ -170,19 +169,19 @@ handleDynamicRegistration runtime =
   :<|> handleTextRegister runtime
   :<|> handleListRegistrations runtime
 
-handleAutoRegister :: Runtime -> DNSLeafName -> SockAddr -> Maybe Text -> Maybe ChallengeAttempt -> Handler AutoRegistrationResult
-handleAutoRegister rt _ _ (Just _) _ = do
+handleAutoRegister :: Runtime -> DNSLeafName -> Maybe Text -> SockAddr -> Maybe Text -> Maybe ChallengeAttempt -> Handler AutoRegistrationResult
+handleAutoRegister rt _ _ _ (Just _) _ = do
   liftIO $ do
     Prometheus.withLabel (cnt_registrations $ counters rt) "error" Prometheus.incCounter
     runTracer (tracer rt) $ RegistrationFailed ProxiedError
   throwError err400
-handleAutoRegister rt _ _ _ Nothing = do
+handleAutoRegister rt _ _ _ _ Nothing = do
   liftIO $ do
     Prometheus.withLabel (cnt_registrations $ counters rt) "error" Prometheus.incCounter
     runTracer (tracer rt) $ RegistrationFailed AuthError
   throwError err403
-handleAutoRegister rt dnsleaf sockaddr Nothing (Just hmac) = do
-  let hashedpart = dnsleaf
+handleAutoRegister rt dnsleaf apex sockaddr Nothing (Just hmac) = do
+  let hashedpart = (apex, dnsleaf)
   let auth = verifyHmac rt hashedpart hmac
   let ipport = IP.fromSockAddr sockaddr
   case auth of
@@ -199,19 +198,19 @@ handleAutoRegister rt dnsleaf sockaddr Nothing (Just hmac) = do
             runTracer (tracer rt) $ RegistrationFailed IPLookupError
           throwError err500
         Just (ip,_) -> liftIO $ do
-          rr <- addRRa success rt dnsleaf ip
+          rr <- addRRa success rt (maybe (dnsApex rt) apexFromText apex) dnsleaf ip
           runTracer (tracer rt) $ RegistrationSuccess rr
           Prometheus.withLabel (cnt_registrations $ counters rt) "success" Prometheus.incCounter
           pure $ AutoRegistrationResult dnsleaf (Text.pack $ show ip)
 
-handleTextRegister :: Runtime -> DNSLeafName -> Text -> Maybe ChallengeAttempt -> Handler (DNSLeafName, Text)
-handleTextRegister rt dnsleaf textval Nothing = do
+handleTextRegister :: Runtime -> DNSLeafName -> Text -> Maybe Text -> Maybe ChallengeAttempt -> Handler (DNSLeafName, Text)
+handleTextRegister rt _ _ _ Nothing = do
   liftIO $ do
     Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
     runTracer (tracer rt) $ RegistrationFailed AuthError
   throwError err403
-handleTextRegister rt dnsleaf textval (Just hmac) = do
-  let hashedpart = dnsleaf
+handleTextRegister rt dnsleaf textval apex (Just hmac) = do
+  let hashedpart = (apex, dnsleaf)
   let auth = verifyHmac rt hashedpart hmac
   case auth of
     Nothing -> do
@@ -220,7 +219,7 @@ handleTextRegister rt dnsleaf textval (Just hmac) = do
         runTracer (tracer rt) $ RegistrationFailed AuthError
       throwError err403
     Just success -> liftIO $ do
-      rr <- addText success rt dnsleaf textval
+      rr <- addText success rt (maybe (dnsApex rt) apexFromText apex) dnsleaf textval
       runTracer (tracer rt) $ RegistrationSuccess rr
       pure (dnsleaf, textval)
 
@@ -229,15 +228,18 @@ handleListRegistrations rt _ = do
   rrs <- liftIO $ readRRs rt
   pure $ Registrations $ map show rrs
 
-type HashedPart = Text
+-- (apex?, txt)
+type HashedPart = (Maybe Text, Text)
 
 data ActionAuthorized = ActionAuthorized
 
 verifyHmac :: Runtime -> HashedPart -> ChallengeAttempt -> Maybe ActionAuthorized
-verifyHmac rt hashedpart attempt =
+verifyHmac rt (apex,txt) attempt =
   if attempt == expected
   then Just ActionAuthorized
   else Nothing
   where
-    hmac = HMAC256.hmac (sharedHmacSecret rt) (Text.encodeUtf8 hashedpart)
+    hashedStr :: ByteString
+    hashedStr = mconcat [maybe "" Text.encodeUtf8 apex , Text.encodeUtf8 txt]
+    hmac = HMAC256.hmac (sharedHmacSecret rt) hashedStr
     expected = Text.decodeUtf8 $ Base16.encode $ hmac

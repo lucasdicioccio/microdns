@@ -13,7 +13,6 @@ import qualified Network.DNS as DNS
 
 import Options.Generic
 
-import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
 import qualified  Text.Megaparsec as Megaparsec
 import Data.ByteString (ByteString)
@@ -66,7 +65,8 @@ main = do
                  (serveApi appRuntime)
                  (Proxy @Api)
   dnsrt <- MicroDNS.initRuntime (coerce $ dnsPort args) tracePrint
-  configRRs <- loadConfigRRs (coerce zoneFile args)
+  configRRs <- loadConfigRRs (MicroDNS.apexFromText $ coerce $ dnsApex args) (coerce zoneFile args)
+  _ <- traverse print configRRs
   let combinedRRs = DynamicRegistration.readRRs (dynamicRegistrationRuntime appRuntime) <> pure configRRs
   let dnsapp = MicroDNS.handleQuestion dnsrt (MicroDNS.ioLookup combinedRRs)
   
@@ -91,16 +91,13 @@ main = do
     apiStatus :: IO Text
     apiStatus = pure "ok"
 
-    loadConfigRRs :: FilePath -> IO [DNS.ResourceRecord]
-    loadConfigRRs zfile = do
+    loadConfigRRs :: MicroDNS.Apex -> FilePath -> IO [DNS.ResourceRecord]
+    loadConfigRRs apex zfile = do
       zonecontent <- Megaparsec.parse MicroDNS.zoneFile zfile <$> Text.readFile zfile
       case zonecontent of
         Left err -> error $ show err
-        Right zones -> pure $ catMaybes $ fmap extractRecord $ MicroDNS.directives zones
+        Right zones -> pure $ MicroDNS.collectDirectives apex zones
 
-    extractRecord :: MicroDNS.Directive -> Maybe DNS.ResourceRecord
-    extractRecord (MicroDNS.Record rec) = Just rec 
-    extractRecord (MicroDNS.Comment _) = Nothing
 
 type Api = DynamicRegistration.Api
 
@@ -112,7 +109,7 @@ initRuntime :: Params -> IO Runtime
 initRuntime params = do
   secret <- ByteString.readFile (coerce $ webHmacSecretFile params) 
   Runtime
-    <$> DynamicRegistration.initRuntime tracePrint secret (Text.encodeUtf8 $ coerce $ dnsApex params)
+    <$> DynamicRegistration.initRuntime tracePrint secret (MicroDNS.apexFromText $ coerce $ dnsApex params)
 
 serveApi :: Runtime -> Server Api
 serveApi Runtime{..} = DynamicRegistration.handleDynamicRegistration dynamicRegistrationRuntime

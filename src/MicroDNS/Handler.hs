@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 module MicroDNS.Handler where
 
 import Control.Monad (forever, void)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as ByteString
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -14,6 +16,21 @@ import Prod.Tracer
 
 import MicroDNS.Runtime
 import MicroDNS.DAI
+
+newtype Apex = Apex { getApex :: ByteString }
+  deriving (Show, Eq, Ord)
+
+endsWithDot :: ByteString -> Bool
+endsWithDot bs =
+  ByteString.takeEnd 1 bs == "."
+
+apexify :: ByteString -> Apex
+apexify bs
+  | endsWithDot bs = Apex bs
+  | otherwise = Apex (bs <> ".")
+
+apexFromText :: Text -> Apex
+apexFromText = apexify . Text.encodeUtf8
 
 type QuestionLookup m = DNS.Question -> m [DNS.ResourceRecord]
 

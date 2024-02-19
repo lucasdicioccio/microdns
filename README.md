@@ -36,7 +36,7 @@ lose everything if it restarts. You add DNS records by calling an HTTP(s)-API.
 
 The HTTP(s)-API calls are validated using a shared-secret HMAC-256.  This
 mechanism is not very strong, so you should probably not use `microdns` while
-exposing the HTTP-configuration API on the Internet if your domain apex is a
+exposing the HTTP-configuration API on the Internet if your domain is a
 sensitive target. For tech-savvy individuals with low-profile blogs like mine,
 it's probably enough.
 
@@ -87,22 +87,28 @@ There are only two available API-based registration:
 
 Expose the client IP as A (or AAAA for IPv6 clients) `${subzone}.${apex}`
 (mostly for the dynamic-DNS problem).
-- `POST /register/auto/:subzone`
+- `POST /register/auto/:subzone?apex=:apex`
 
 Expose `TXT ${subzone}.${apex} ${value}` (mostly for ACME-challenge token).
-- `POST /register/txt/:subzone/:value`
+- `POST /register/txt/:subzone/:value?apex=:apex`
 
 ### authentication
 
 Some HMAC-256 protection using a shared-secret is here to provide a minimum of
 authentication (cf. `MicroDNS.DynamicRegistration.verifyHmac`).
 
-`x-microdns-hmac: ${base16-encode(hmac(${secret_key},${subzone}))}`
+`x-microdns-hmac: ${base16-encode(hmac(${secret_key},${apex}${subzone}))}`
 
 In present form, the implementation lacks nonces and only hashes the subzone.
 Which means queries that can be spied-on can be modified and replayed.  As a
 result, if you are using the Dynamic registration API over the Internet, TLS
 should be mandatory.
+
+Note that apex is the empty string when missing from the URL query params.
+That is, apex is not replaced with the one given on the command-line.  Said
+another way, the secret key is the only command-line parameter that influences
+the hmac.
+
 
 ## MicroZone Files
 
@@ -114,8 +120,8 @@ An example file with comments is as follows:
 -- comments start with "--"
 -- all records have fixed TTL to 300
 -- there are no wildcards
--- there is no @ special syntax
--- all domain names are fqdns
+-- the @ special syntax replaces the current apex in some records (from the commandline or overriden)
+-- otherwise, all domain names are fqdns
 
 -- A and AAAA records
 A example.com. 1.2.3.4
@@ -123,6 +129,7 @@ AAAA example.com. ::1.2.3.4
 
 -- TXT wants quoted strings
 TXT example.com. "microdns has \"quoted\" strings with \\ (backslashes)"
+TXT @ "apex syntax"
 
 -- CAA has two quoted strings
 CAA example.com. "issue" "letsencrypt"
@@ -138,6 +145,11 @@ CNAME dir.example.com. directory.example.com
 
 -- SRV have only priority
 SRV _altweb._tcp.example.com. 10 8080 1.2.3.4
+
+microdns:apex other.example.com.
+
+TXT @ "apex syntax in other.example.com."
+
 ```
 
 ## TODO list
@@ -148,6 +160,8 @@ SRV _altweb._tcp.example.com. 10 8080 1.2.3.4
 - dynamic registration
   - support more record types
   - actual nonces
+  - hmac-protect the txt-payloads as well
+  - only expose known records in debug mode
 - server/handler
   - switch DNS lib to `dnsext`
   - listen on TCP socket
