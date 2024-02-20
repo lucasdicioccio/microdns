@@ -21,6 +21,8 @@ import qualified Data.List as List
 import Data.IORef (IORef, newIORef, readIORef, atomicModifyIORef')
 import Network.Socket (SockAddr) 
 import Data.IP as IP
+import Net.IPv4 as IPv4
+import Net.IPv6 as IPv6
 import Servant
 import Servant.Server
 import Prod.Tracer (Tracer(..), contramap)
@@ -33,6 +35,8 @@ import MicroDNS.Handler (Apex(..), apexFromText)
 
 type Api = AutoRegisterApi
   :<|> RegisterTextApi
+  :<|> RegisterAApi
+  :<|> RegisterAAAAApi
   :<|> ListRegistrationsApi
 
 type DNSLeafName = Text
@@ -49,9 +53,29 @@ type AutoRegisterApi =
     :> Post '[JSON] AutoRegistrationResult
 
 type RegisterTextApi =
-  Summary "registers a text (e.g., for an ACME challenge)"
+  Summary "registers a TXT (e.g., for an ACME challenge)"
     :> "register"
     :> "txt"
+    :> Capture "dns-leaf" DNSLeafName
+    :> Capture "token" Text
+    :> QueryParam "apex" Text
+    :> Header "x-microdns-hmac" ChallengeAttempt
+    :> Post '[JSON] (DNSLeafName, Text)
+
+type RegisterAApi =
+  Summary "registers a A"
+    :> "register"
+    :> "a"
+    :> Capture "dns-leaf" DNSLeafName
+    :> Capture "token" Text
+    :> QueryParam "apex" Text
+    :> Header "x-microdns-hmac" ChallengeAttempt
+    :> Post '[JSON] (DNSLeafName, Text)
+
+type RegisterAAAAApi =
+  Summary "registers a AAAA"
+    :> "register"
+    :> "aaaa"
     :> Capture "dns-leaf" DNSLeafName
     :> Capture "token" Text
     :> QueryParam "apex" Text
@@ -79,6 +103,7 @@ data RegistrationFailedReason
   = AuthError
   | ProxiedError
   | IPLookupError
+  | IPParsingError
   deriving (Show)
 
 data Registrations
@@ -167,6 +192,8 @@ handleDynamicRegistration :: Runtime -> Server Api
 handleDynamicRegistration runtime =
   handleAutoRegister runtime
   :<|> handleTextRegister runtime
+  :<|> handleARegister runtime
+  :<|> handleAAAARegister runtime
   :<|> handleListRegistrations runtime
 
 handleAutoRegister :: Runtime -> DNSLeafName -> Maybe Text -> SockAddr -> Maybe Text -> Maybe ChallengeAttempt -> Handler AutoRegistrationResult
@@ -222,6 +249,62 @@ handleTextRegister rt dnsleaf textval apex (Just hmac) = do
       rr <- addText success rt (maybe (dnsApex rt) apexFromText apex) dnsleaf textval
       runTracer (tracer rt) $ RegistrationSuccess rr
       pure (dnsleaf, textval)
+
+handleARegister :: Runtime -> DNSLeafName -> Text -> Maybe Text -> Maybe ChallengeAttempt -> Handler (DNSLeafName, Text)
+handleARegister rt _ _ _ Nothing = do
+  liftIO $ do
+    Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
+    runTracer (tracer rt) $ RegistrationFailed AuthError
+  throwError err403
+handleARegister rt dnsleaf textval apex (Just hmac) = do
+  let hashedpart = (apex, dnsleaf)
+  let auth = verifyHmac rt hashedpart hmac
+  case auth of
+    Nothing -> do
+      liftIO $ do
+        Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
+        runTracer (tracer rt) $ RegistrationFailed AuthError
+      throwError err403
+    Just success -> do
+      let ipv4 = IPv4.decode textval
+      case ipv4 of
+        Nothing -> do
+          liftIO $ do
+            Prometheus.withLabel (cnt_registrations $ counters rt) "error" Prometheus.incCounter
+            runTracer (tracer rt) $ RegistrationFailed IPParsingError
+          throwError err400
+        Just ip -> liftIO $ do
+          rr <- addRRa success rt (maybe (dnsApex rt) apexFromText apex) dnsleaf (IP.IPv4 $ IP.fromHostAddress $ IPv4.getIPv4 ip)
+          runTracer (tracer rt) $ RegistrationSuccess rr
+          pure (dnsleaf, textval)
+
+handleAAAARegister :: Runtime -> DNSLeafName -> Text -> Maybe Text -> Maybe ChallengeAttempt -> Handler (DNSLeafName, Text)
+handleAAAARegister rt _ _ _ Nothing = do
+  liftIO $ do
+    Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
+    runTracer (tracer rt) $ RegistrationFailed AuthError
+  throwError err403
+handleAAAARegister rt dnsleaf textval apex (Just hmac) = do
+  let hashedpart = (apex, dnsleaf)
+  let auth = verifyHmac rt hashedpart hmac
+  case auth of
+    Nothing -> do
+      liftIO $ do
+        Prometheus.withLabel (cnt_registrations $ counters rt) "auth-error" Prometheus.incCounter
+        runTracer (tracer rt) $ RegistrationFailed AuthError
+      throwError err403
+    Just success -> do
+      let ipv6 = IPv6.decode textval
+      case ipv6 of
+        Nothing -> do
+          liftIO $ do
+            Prometheus.withLabel (cnt_registrations $ counters rt) "error" Prometheus.incCounter
+            runTracer (tracer rt) $ RegistrationFailed IPParsingError
+          throwError err400
+        Just ip -> liftIO $ do
+          rr <- addRRa success rt (maybe (dnsApex rt) apexFromText apex) dnsleaf (IP.IPv6 $ IP.fromHostAddress6 $ IPv6.toWord32s ip)
+          runTracer (tracer rt) $ RegistrationSuccess rr
+          pure (dnsleaf, textval)
 
 handleListRegistrations :: Runtime -> Maybe ChallengeAttempt -> Handler Registrations
 handleListRegistrations rt _ = do

@@ -83,11 +83,17 @@ nft add rule inet filter input udp dport 53 limit rate over 10/second drop
 
 ## Dynamic registration
 
-There are only two available API-based registration:
+There are only a few available API-based registration:
 
 Expose the client IP as A (or AAAA for IPv6 clients) `${subzone}.${apex}`
 (mostly for the dynamic-DNS problem).
+
+Automatic registration using the client IP (using the `x-forwarded-for` header if present):
 - `POST /register/auto/:subzone?apex=:apex`
+
+Exposing A or AAAA records (syntax follows [using Net.IPv{4,6} decode](https://hackage.haskell.org/package/ip-1.7.7/docs/Net-IPv4.html#v:decode)).
+- `POST /register/a/:subzone/:value?apex=:apex`
+- `POST /register/aaaa/:subzone/:value?apex=:apex`
 
 Expose `TXT ${subzone}.${apex} ${value}` (mostly for ACME-challenge token).
 - `POST /register/txt/:subzone/:value?apex=:apex`

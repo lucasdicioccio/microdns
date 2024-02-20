@@ -42,6 +42,7 @@ executable microdns
                     , base16-bytestring
                     , case-insensitive
                     , cryptohash-sha256
+                    , ip
                     , iproute
                     , streaming-commons
                     , bytestring
