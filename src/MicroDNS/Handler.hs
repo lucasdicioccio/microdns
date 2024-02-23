@@ -40,16 +40,27 @@ ioLookup records q =
 
 lookupRecord :: [DNS.ResourceRecord] -> DNS.Question -> [DNS.ResourceRecord]
 lookupRecord records DNS.Question{DNS.qname = qname, DNS.qtype = qtype} =
-    filter matchQuestion records
+    let
+      exacts = filter matchExact records
+      cnamed = filter matchCName records
+      recursedOnce = filter (matchCNameRecursion cnamed) records
+    in
+    exacts <> cnamed <> recursedOnce
   where
-    matchQuestion r =
-      matchExact r || matchCName r
+    qname' = downcase qname
 
     matchExact (DNS.ResourceRecord name_ qtyp_ _ _ _) =
-      qtyp_ == qtype && downcase name_ == downcase qname
+      qtyp_ == qtype && downcase name_ == qname'
 
     matchCName (DNS.ResourceRecord name_ qtyp_ _ _ _) =
-      qtyp_ == DNS.CNAME && downcase name_ == downcase qname
+      qtyp_ == DNS.CNAME && downcase name_ == qname'
+
+    matchCNameRecursion :: [DNS.ResourceRecord] -> DNS.ResourceRecord -> Bool
+    matchCNameRecursion cnames (DNS.ResourceRecord name_ qtyp_ _ _ _) =
+      qtyp_ == qtype && any (matchCNameRecord (downcase name_)) cnames
+
+    matchCNameRecord recordName (DNS.ResourceRecord _ _ _ _ (DNS.RD_CNAME cnamedName)) = downcase cnamedName == recordName
+    matchCNameRecord _ _ = False
 
     downcase x = Text.toLower $ Text.decodeUtf8 x -- todo: better for dns
 
