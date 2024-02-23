@@ -42,8 +42,14 @@ lookupRecord :: [DNS.ResourceRecord] -> DNS.Question -> [DNS.ResourceRecord]
 lookupRecord records DNS.Question{DNS.qname = qname, DNS.qtype = qtype} =
     filter matchQuestion records
   where
-    matchQuestion (DNS.ResourceRecord name_ qtyp_ _ _ _) =
+    matchQuestion r =
+      matchExact r || matchCName r
+
+    matchExact (DNS.ResourceRecord name_ qtyp_ _ _ _) =
       qtyp_ == qtype && downcase name_ == downcase qname
+
+    matchCName (DNS.ResourceRecord name_ qtyp_ _ _ _) =
+      qtyp_ == DNS.CNAME && downcase name_ == downcase qname
 
     downcase x = Text.toLower $ Text.decodeUtf8 x -- todo: better for dns
 
