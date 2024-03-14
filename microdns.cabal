@@ -35,7 +35,7 @@ executable microdns
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.3.0
+    build-depends:    base >=4.16.3.0
                     , aeson
                     , async
                     , bytestring
