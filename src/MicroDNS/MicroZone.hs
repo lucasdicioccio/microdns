@@ -1,58 +1,62 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module MicroDNS.MicroZone
-  ( ZoneFile(..)
-  , Directive(..)
-  -- * parsing
-  , zoneFile
-  -- * exploitation
-  , collectDirectives
-  ) where
 
-import Data.IP (IPv4, IPv6)
-import Data.Word (Word16)
+module MicroDNS.MicroZone (
+    ZoneFile (..),
+    Directive (..),
+
+    -- * parsing
+    zoneFile,
+
+    -- * exploitation
+    collectDirectives,
+) where
+
+import qualified Data.ByteString as ByteString
 import Data.CaseInsensitive as CI
+import Data.IP (IPv4, IPv6)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import qualified Data.ByteString as ByteString
+import Data.Void (Void)
+import Data.Word (Word16)
 import qualified Network.DNS as DNS
 import Text.Megaparsec
-import Text.Megaparsec.Char (alphaNumChar, digitChar, hexDigitChar, string, space, newline)
-import Data.Void (Void)
+import Text.Megaparsec.Char (alphaNumChar, digitChar, hexDigitChar, newline, space, string)
 
-import MicroDNS.Handler (Apex(..), apexify, apexFromText, endsWithDot)
+import MicroDNS.Handler (Apex (..), apexFromText, apexify, endsWithDot)
 
 data ZoneFile
-  = ZoneFile
-  { directives :: [ Directive ]
-  }
-  deriving (Show)
+    = ZoneFile
+    { directives :: [Directive]
+    }
+    deriving (Show)
 
 type CommentedText = Text
 
 data GuardedCommand
-  = SetApex Text
-  deriving (Show)
+    = SetApex Text
+    deriving (Show)
 
 data Directive
-  = Comment CommentedText
-  | Command GuardedCommand
-  | Record DNS.ResourceRecord
-  deriving (Show)
+    = Comment CommentedText
+    | Command GuardedCommand
+    | Record DNS.ResourceRecord
+    deriving (Show)
 
 type Parser = Parsec Void Text
 
 zoneFile :: Parser ZoneFile
 zoneFile =
-  ZoneFile <$> (directive `sepEndBy` skipSome newline) <* eof
+    ZoneFile <$> (directive `sepEndBy` skipSome newline) <* eof
 
 directive :: Parser Directive
-directive = choice
-  [ (Comment <$> comment)
-  , (Command <$> command)
-  , (Record <$> record)
-  ]
+directive =
+    choice
+        [ (Comment <$> comment)
+        , (Command <$> command)
+        , (Record <$> record)
+        ]
 
 comment :: Parser CommentedText
 comment = string "--" *> space *> takeWhile1P Nothing ((/=) '\n')
@@ -60,108 +64,108 @@ comment = string "--" *> space *> takeWhile1P Nothing ((/=) '\n')
 command :: Parser GuardedCommand
 command =
     choice
-    [ SetApex <$> apex
-    ]
+        [ SetApex <$> apex
+        ]
   where
     apex = string "microdns:apex" *> space *> domainName
 
 record :: Parser DNS.ResourceRecord
 record =
     choice
-    [ txtRecord
-    -- aaaa first to avoid a valid 'a' prefix parse
-    , aaaaRecord
-    , aRecord
-    , caaRecord
-    , cnameRecord
-    , mxRecord
-    , srvRecord
-    ]
+        [ txtRecord
+        , -- aaaa first to avoid a valid 'a' prefix parse
+          aaaaRecord
+        , aRecord
+        , caaRecord
+        , cnameRecord
+        , mxRecord
+        , srvRecord
+        ]
 
 txtRecord :: Parser DNS.ResourceRecord
 txtRecord = do
-  _ <- string "TXT"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !val <- Text.encodeUtf8 <$> quotedString
-  pure $ DNS.ResourceRecord domain DNS.TXT DNS.classIN 300 $ DNS.RD_TXT val
+    _ <- string "TXT"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !val <- Text.encodeUtf8 <$> quotedString
+    pure $ DNS.ResourceRecord domain DNS.TXT DNS.classIN 300 $ DNS.RD_TXT val
 
 aRecord :: Parser DNS.ResourceRecord
 aRecord = do
-  _ <- string "A"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !val <- ipv4
-  pure $ DNS.ResourceRecord domain DNS.A DNS.classIN 300 $ DNS.RD_A val
+    _ <- string "A"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !val <- ipv4
+    pure $ DNS.ResourceRecord domain DNS.A DNS.classIN 300 $ DNS.RD_A val
 
 aaaaRecord :: Parser DNS.ResourceRecord
 aaaaRecord = do
-  _ <- string "AAAA"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !val <- ipv6
-  pure $ DNS.ResourceRecord domain DNS.AAAA DNS.classIN 300 $ DNS.RD_AAAA val
+    _ <- string "AAAA"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !val <- ipv6
+    pure $ DNS.ResourceRecord domain DNS.AAAA DNS.classIN 300 $ DNS.RD_AAAA val
 
 caaRecord :: Parser DNS.ResourceRecord
 caaRecord = do
-  _ <- string "CAA"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !key <- CI.mk . Text.encodeUtf8 <$> quotedString
-  _ <- space
-  !val <- Text.encodeUtf8 <$> quotedString
-  pure $ DNS.ResourceRecord domain DNS.CAA DNS.classIN 300 $ DNS.RD_CAA 0 key val
+    _ <- string "CAA"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !key <- CI.mk . Text.encodeUtf8 <$> quotedString
+    _ <- space
+    !val <- Text.encodeUtf8 <$> quotedString
+    pure $ DNS.ResourceRecord domain DNS.CAA DNS.classIN 300 $ DNS.RD_CAA 0 key val
 
 cnameRecord :: Parser DNS.ResourceRecord
 cnameRecord = do
-  _ <- string "CNAME"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !val <- Text.encodeUtf8 <$> domainName
-  pure $ DNS.ResourceRecord domain DNS.CNAME DNS.classIN 300 $ DNS.RD_CNAME val
+    _ <- string "CNAME"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !val <- Text.encodeUtf8 <$> domainName
+    pure $ DNS.ResourceRecord domain DNS.CNAME DNS.classIN 300 $ DNS.RD_CNAME val
 
 mxRecord :: Parser DNS.ResourceRecord
 mxRecord = do
-  _ <- string "MX"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !priority <- mxPriority
-  _ <- space
-  !val <- Text.encodeUtf8 <$> domainName
-  pure $ DNS.ResourceRecord domain DNS.MX DNS.classIN 300 $ DNS.RD_MX priority val
+    _ <- string "MX"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !priority <- mxPriority
+    _ <- space
+    !val <- Text.encodeUtf8 <$> domainName
+    pure $ DNS.ResourceRecord domain DNS.MX DNS.classIN 300 $ DNS.RD_MX priority val
 
 srvRecord :: Parser DNS.ResourceRecord
 srvRecord = do
-  _ <- string "SRV"
-  _ <- space
-  !domain <- Text.encodeUtf8 <$> apexOrDomainName
-  _ <- space
-  !priority <- srvPriority
-  _ <- space
-  !port <- srvPortnum
-  _ <- space
-  !val <- Text.encodeUtf8 <$> domainName
-  pure $ DNS.ResourceRecord domain DNS.SRV DNS.classIN 300 $ DNS.RD_SRV priority 1 port val
+    _ <- string "SRV"
+    _ <- space
+    !domain <- Text.encodeUtf8 <$> apexOrDomainName
+    _ <- space
+    !priority <- srvPriority
+    _ <- space
+    !port <- srvPortnum
+    _ <- space
+    !val <- Text.encodeUtf8 <$> domainName
+    pure $ DNS.ResourceRecord domain DNS.SRV DNS.classIN 300 $ DNS.RD_SRV priority 1 port val
 
 apexOrDomainName :: Parser Text
 apexOrDomainName =
-  (string "@" *> pure "") <|> domainName
+    (string "@" *> pure "") <|> domainName
 
 domainName :: Parser Text
 domainName =
-  Text.pack
-    <$> many (alphaNumChar <|> oneOf ['.','-','_'])
+    Text.pack
+        <$> many (alphaNumChar <|> oneOf ['.', '-', '_'])
 
 quotedString :: Parser Text
 quotedString =
     Text.pack
-      <$> between (string "\"") (string "\"") contents
+        <$> between (string "\"") (string "\"") contents
   where
     contents :: Parser [Char]
     contents = many (escapedChar <|> plainChar)
@@ -182,9 +186,9 @@ ipv4 :: Parser IPv4
 ipv4 = read <$> many (digitChar <|> oneOf ['.'])
 
 ipv6 :: Parser IPv6
-ipv6 = read <$> many (hexDigitChar <|> oneOf [':','.'])
+ipv6 = read <$> many (hexDigitChar <|> oneOf [':', '.'])
 
-mxPriority,srvPriority,srvPortnum :: Parser Word16
+mxPriority, srvPriority, srvPortnum :: Parser Word16
 mxPriority = read <$> many (digitChar)
 srvPriority = read <$> many (digitChar)
 srvPortnum = read <$> many (digitChar)
@@ -195,14 +199,14 @@ collectDirectives defaultApex zones =
   where
     go :: Apex -> [DNS.ResourceRecord] -> [Directive] -> [DNS.ResourceRecord]
     go _ xs [] = xs
-    go a xs ((Comment _):ds) = go a xs ds 
-    go _ xs ((Command (SetApex a)):ds) = go (apexFromText a) xs ds
-    go a xs ((Record rec):ds) = go a (adapt a rec:xs) ds
+    go a xs ((Comment _) : ds) = go a xs ds
+    go _ xs ((Command (SetApex a)) : ds) = go (apexFromText a) xs ds
+    go a xs ((Record rec) : ds) = go a (adapt a rec : xs) ds
 
     adapt :: Apex -> DNS.ResourceRecord -> DNS.ResourceRecord
     adapt apex rr
-      | matchSuffix apex rr = rr
-      | otherwise = rr { DNS.rrname = addApex apex (DNS.rrname rr) }
+        | matchSuffix apex rr = rr
+        | otherwise = rr{DNS.rrname = addApex apex (DNS.rrname rr)}
 
     addApex :: Apex -> ByteString.ByteString -> ByteString.ByteString
     addApex apex "" = getApex apex
