@@ -12,7 +12,7 @@ description: a DNS-authoritative server configurable over HTTP for dynamic-DNS a
 -- bug-reports:
 
 -- The license under which the package is released.
--- license:
+license: BSD-3-Clause
 author:             Lucas DiCioccio
 maintainer:         lucas@dicioccio.fr
 
