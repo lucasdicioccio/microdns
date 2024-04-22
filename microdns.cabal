@@ -6,7 +6,7 @@ version:            0.1.0.0
 synopsis: a minimalistic DNS-authoritative server
 
 -- A longer description of the package.
--- description:
+description: a DNS-authoritative server configurable over HTTP for dynamic-DNS and cert-signing purposes
 
 -- A URL where users can report bugs.
 -- bug-reports:
@@ -18,7 +18,7 @@ maintainer:         lucas@dicioccio.fr
 
 -- A copyright notice.
 -- copyright:
--- category:
+category: Networking
 extra-source-files: CHANGELOG.md
 
 executable microdns
@@ -35,29 +35,29 @@ executable microdns
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base >=4.16.3.0
-                    , aeson
-                    , async
-                    , bytestring
-                    , base16-bytestring
-                    , case-insensitive
-                    , cryptohash-sha256
-                    , ip
-                    , iproute
-                    , streaming-commons
-                    , bytestring
-                    , text
-                    , prometheus-client
-                    , dns >= 4.1.1
-                    , network
-                    , megaparsec
-                    , optparse-generic
-                    , prodapi
-                    , warp
-                    , warp-tls
-                    , wai-extra
-                    , servant
-                    , servant-server
+    build-depends:
+        aeson >= 2.2.1 && < 2.3,
+        base >= 4.19.1 && < 4.20,
+        bytestring >= 0.12.1 && < 0.13,
+        text >= 2.1.1 && < 2.2,
+        async >= 2.2.5 && < 2.3,
+        base16-bytestring >= 1.0.2 && < 1.1,
+        case-insensitive >= 1.2.1 && < 1.3,
+        cryptohash-sha256 >= 0.11.102 && < 0.12,
+        dns >= 4.2.0 && < 4.3,
+        iproute >= 1.7.12 && < 1.8,
+        network >= 3.1.4 && < 3.2,
+        ip >= 1.7.8 && < 1.8,
+        megaparsec >= 9.6.1 && < 9.7,
+        optparse-generic >= 1.5.2 && < 1.6,
+        prodapi >= 0.1.0 && < 0.2,
+        streaming-commons >= 0.2.2 && < 0.3,
+        prometheus-client >= 1.1.1 && < 1.2,
+        servant >= 0.20.1 && < 0.21,
+        servant-server >= 0.20 && < 0.21,
+        wai-extra >= 3.1.14 && < 3.2,
+        warp >= 3.3.31 && < 3.4,
+        warp-tls >= 3.4.5 && < 3.5
     hs-source-dirs:   app
                     , src
     default-language: Haskell2010

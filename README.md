@@ -21,7 +21,7 @@ some metrics, and a somewhat uniform way of building services.
 
 - will you support DNSSEC ?
 
-very unlikely
+unlikely but why not
 
 - will you support PunyCode ?
 
