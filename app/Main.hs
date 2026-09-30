@@ -20,7 +20,8 @@ import qualified Data.Text.IO as Text
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Network.Wai.Handler.WarpTLS as Warp
 import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
-import qualified Paths_prodapi
+import qualified Paths_prodapi_core
+import qualified Paths_prodapi_web
 import qualified Prod.App as Prod
 import Prod.Status
 import Prod.Tracer (tracePrint)
@@ -64,7 +65,7 @@ main = do
                 Prod.app
                     init
                     apiStatus
-                    (statusPage <> versionsSection [("prodapi", Paths_prodapi.version)])
+                    (statusPage <> versionsSection [("prodapi-core", Paths_prodapi_core.version), ("prodapi-web", Paths_prodapi_web.version)])
                     (serveApi appRuntime)
                     (Proxy @Api)
     dnsrt <- MicroDNS.initRuntime (coerce $ dnsPort args) tracePrint
