@@ -1,0 +1,33 @@
+-- comments start with "--"
+-- all records have fixed TTL to 300
+-- there are no wildcards
+-- the @ special syntax replaces the current apex in some records (from the commandline or overriden)
+-- otherwise, all domain names are fqdns
+
+-- A and AAAA records
+A example.com. 1.2.3.4
+AAAA example.com. ::1.2.3.4
+
+-- TXT wants quoted strings
+TXT example.com. "microdns has \"quoted\" strings with \\ (backslashes)"
+TXT @ "apex syntax"
+
+-- CAA has two quoted strings
+CAA example.com. "issue" "letsencrypt"
+
+-- MX
+
+MX example.com. 10 1.2.3.4
+MX example.com. 100 spool.example.com.
+
+-- CNAME
+
+CNAME dir.example.com. directory.example.com
+
+-- SRV have only priority
+SRV _altweb._tcp.example.com. 10 8080 1.2.3.4
+
+microdns:apex other.example.com.
+
+TXT @ "apex syntax in other.example.com."
+

@@ -158,6 +158,16 @@ TXT @ "apex syntax in other.example.com."
 
 ```
 
+# Example
+
+```
+cabal update
+echo unsafe > secrect-web-hmac-file.txt
+cabal run -- microdns plain --dnsPort 5454 --dnsApex example.com. --webHmacSecretFile  secret-web-hmac-file.txt --webPort 3333  --zoneFile fixtures/example.mzone
+```
+
+then `dig +short @127.0.0.1 -p5354 example.com 1.2.3.4` .
+
 ## TODO list
 
 - dns-zones
