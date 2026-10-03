@@ -1,0 +1,5 @@
+dist-newstyle/
+
+# Kitchen-Sink dev-server output. website/src/ is the source; the published
+# site is produced into docs/ and committed.
+website/www/

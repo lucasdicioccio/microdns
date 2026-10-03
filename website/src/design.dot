@@ -1,0 +1,26 @@
+// How microdns answers a query: two sources of records behind one lookup.
+digraph design {
+  rankdir=TB;
+  bgcolor="transparent";
+  node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#e3f2fd", color="#1565c0"];
+  edge [fontname="Helvetica", fontsize=10, color="#555555"];
+  resolver [label="DNS resolver", fillcolor="#eeeeee", color="#555555"];
+  client [label="HTTP(S) client\n(dyn-DNS script, ACME client)", fillcolor="#eeeeee", color="#555555"];
+  zonefile [label="MicroZone file", shape=note, style="filled", fillcolor="#eeeeee", color="#555555"];
+  subgraph cluster_dns { label="DNS side"; style="rounded"; color="#1565c0";
+    server [label="MicroDNS.Server\nsingle-threaded, DNS over UDP"];
+    dai [label="MicroDNS.DAI\nserver/handler interface, like WAI"];
+    handler [label="MicroDNS.Handler\nanswers from an IO [ResourceRecord]", fillcolor="#fff3e0", color="#ef6c00"];
+  }
+  subgraph cluster_rr { label="Record sources"; style="rounded"; color="#2e7d32";
+    zone [label="MicroDNS.MicroZone\nfixed records, parsed at startup", fillcolor="#e8f5e9", color="#2e7d32"];
+    dyn [label="MicroDNS.DynamicRegistration\nin-memory records, HMAC-checked API", fillcolor="#e8f5e9", color="#2e7d32"];
+  }
+  resolver -> server [label="UDP query"];
+  server -> dai;
+  dai -> handler;
+  handler -> zone [label="lookup"];
+  handler -> dyn [label="lookup"];
+  zonefile -> zone [style=dashed];
+  client -> dyn [label="POST /register/..."];
+}

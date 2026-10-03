@@ -1,0 +1,13 @@
+microdns: a minimalist authoritative DNS server written in Haskell. It serves fixed records from a zone file and dynamic records registered over an HMAC-authenticated HTTP(S) API (dynamic DNS, ACME DNS-01 challenges).
+
+Overview: https://lucasdicioccio.github.io/microdns/
+Getting started: https://lucasdicioccio.github.io/microdns/getting-started.html
+Dynamic registration API: https://lucasdicioccio.github.io/microdns/dynamic-registration.html
+MicroZone files: https://lucasdicioccio.github.io/microdns/microzone-files.html
+
+Canonical sources, on GitHub:
+- Repository: https://github.com/lucasdicioccio/microdns
+- README: https://github.com/lucasdicioccio/microdns/blob/main/README.md
+
+Every article on this site is also served as plain text, at
+https://lucasdicioccio.github.io/microdns/text/<page>.cmark.text

@@ -1,0 +1,116 @@
+=base:build-info.json
+{"layout":"article"
+,"publicationStatus":"Public"
+}
+
+=base:preamble.json
+{"author": "Lucas DiCioccio"
+,"date": "2026-10-03T12:00:00Z"
+,"title": "Getting started with microdns"
+,"imageLink": "/gen/images/design.dot.png"
+}
+
+=base:topic.json
+{"topics":["how-to"]
+,"keywords":["getting started", "build", "cabal", "run", "port 53", "capabilities", "rate limiting"]
+}
+
+=base:social.json
+{"twitter": "lucasdicioccio"
+,"linkedin": "lucasdicioccio"
+,"github": "lucasdicioccio"
+,"mastodon": "https://fosstodon.org/@lucasdicioccio"
+}
+
+=base:summary.cmark
+Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53.
+
+=base:main-content.cmark
+
+# Getting started with microdns
+
+microdns serves fixed records from a file and everything else from memory.
+That is, you configure it after it has started, by calling an HTTP(S) API,
+and it loses those records if it restarts.
+
+## Run the example
+
+microdns is a Haskell cabal project. From a checkout of
+[the repository](https://github.com/lucasdicioccio/microdns):
+
+```sh
+cabal update
+echo unsafe > secret-web-hmac-file.txt
+cabal run -- microdns plain \
+  --dnsPort 5354 --dnsApex example.com. \
+  --webPort 3333 --webHmacSecretFile secret-web-hmac-file.txt \
+  --zoneFile fixtures/example.mzone
+```
+
+Then, from another terminal:
+
+```sh
+dig +short @127.0.0.1 -p 5354 example.com
+```
+
+answers `1.2.3.4`, the `A` record in
+[`fixtures/example.mzone`](https://github.com/lucasdicioccio/microdns/blob/main/fixtures/example.mzone).
+
+The options are:
+
+- `--dnsPort`: the UDP port answering DNS queries.
+- `--dnsApex`: the delegated DNS apex.
+- `--webPort`: the TCP port of the configuration API.
+- `--webHmacSecretFile`: the file holding the shared secret that
+  authenticates [dynamic registrations](/dynamic-registration.html).
+- `--zoneFile`: the [MicroZone file](/microzone-files.html) with the fixed
+  records.
+
+The `tls` command takes the same options plus `--certFile` and `--keyFile`,
+and serves the configuration API over HTTPS.
+
+## Running it for real
+
+Unless you have really good reasons not to, run microdns on UDP port 53. You
+also need to listen on a TCP port of your choice for configuration requests.
+Use TLS to protect the API calls: the current code is sensitive to replay
+attacks.
+
+The HMAC mechanism is not very strong, so you should probably not expose the
+configuration API on the Internet if your domain is a sensitive target. For
+tech-savvy individuals with low-profile blogs, it is probably enough.
+
+Assuming some Linux, the best is to run chrooted, with only enough
+privileges to do networking and read the certificate and HMAC files.
+
+Say `microdns` is installed in `/usr/local/bin`: you can grant the binary
+the right to listen on port 53 even for non-root users with Linux
+capabilities (`man 7 capabilities`).
+
+```console
+setcap 'cap_net_bind_service=+ep' /usr/local/bin/microdns
+```
+
+Also consider rate-limiting incoming and outgoing UDP, as DNS over UDP is
+prone to abuse. An example rate limit, using netfilter:
+
+```console
+nft add rule inet filter input udp dport 53 limit rate over 10/second drop
+```
+
+## Where to go next
+
+- [Dynamic registration](/dynamic-registration.html): add records over
+  HTTP(S).
+- [MicroZone files](/microzone-files.html): the format of the fixed records.
+
+=base:main-css.tramaj-json
+{ "format": "css"
+, "contents":
+  [ ""
+  , "@import \"`$ctx.pathPrefix`/css/dev.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/colors.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/article.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/navigation.css\";"
+  ]
+}

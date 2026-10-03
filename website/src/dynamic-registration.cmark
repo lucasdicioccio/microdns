@@ -1,0 +1,82 @@
+=base:build-info.json
+{"layout":"article"
+,"publicationStatus":"Public"
+}
+
+=base:preamble.json
+{"author": "Lucas DiCioccio"
+,"date": "2026-10-03T12:00:00Z"
+,"title": "Dynamic registration"
+,"imageLink": "/gen/images/design.dot.png"
+}
+
+=base:topic.json
+{"topics":["reference"]
+,"keywords":["dynamic dns", "acme", "dns-01", "http api", "hmac", "authentication"]
+}
+
+=base:social.json
+{"twitter": "lucasdicioccio"
+,"linkedin": "lucasdicioccio"
+,"github": "lucasdicioccio"
+,"mastodon": "https://fosstodon.org/@lucasdicioccio"
+}
+
+=base:summary.cmark
+The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them.
+
+=base:main-content.cmark
+
+# Dynamic registration
+
+Records that are not in the [MicroZone file](/microzone-files.html) are
+registered while microdns runs, by calling its HTTP(S) API. They are kept in
+memory and lost on restart. There are only a few registrations available.
+
+## Endpoints
+
+Expose the client IP as `A` (or `AAAA` for IPv6 clients) for
+`${subzone}.${apex}`, mostly for the dynamic-DNS problem. The client IP is
+taken from the `x-forwarded-for` header if present:
+
+- `POST /register/auto/:subzone?apex=:apex`
+
+Expose `A` or `AAAA` records (the syntax follows
+[`Net.IPv4.decode` and `Net.IPv6.decode`](https://hackage.haskell.org/package/ip-1.7.7/docs/Net-IPv4.html#v:decode)):
+
+- `POST /register/a/:subzone/:value?apex=:apex`
+- `POST /register/aaaa/:subzone/:value?apex=:apex`
+
+Expose `TXT ${subzone}.${apex} ${value}`, mostly for ACME-challenge tokens:
+
+- `POST /register/txt/:subzone/:value?apex=:apex`
+
+## Authentication
+
+An HMAC-256 with a shared secret provides a minimum of authentication (see
+`MicroDNS.DynamicRegistration.verifyHmac`). Requests carry the header:
+
+```
+x-microdns-hmac: ${base16-encode(hmac(${secret_key},${apex}${subzone}))}
+```
+
+In its present form, the implementation lacks nonces and only hashes the
+apex and subzone. Queries that can be spied on can therefore be modified and
+replayed. As a result, if you use the dynamic-registration API over the
+Internet, TLS should be mandatory.
+
+Note that the apex is the empty string when missing from the URL query
+parameters: it is not replaced with the one given on the command line. Said
+another way, the secret key is the only command-line parameter that
+influences the HMAC.
+
+=base:main-css.tramaj-json
+{ "format": "css"
+, "contents":
+  [ ""
+  , "@import \"`$ctx.pathPrefix`/css/dev.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/colors.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/article.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/navigation.css\";"
+  ]
+}

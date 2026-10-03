@@ -1,0 +1,46 @@
+# microdns
+
+_microdns, because small services can also create large outages._
+
+A minimalist authoritative DNS server. It serves fixed records from a small zone file and everything else from memory: you add records while it runs by calling an HTTP(S) API, authenticated with a shared-secret HMAC.
+
+```sh
+cabal run -- microdns plain \
+  --dnsPort 5354 --dnsApex example.com. \
+  --webPort 3333 --webHmacSecretFile secret-web-hmac-file.txt \
+  --zoneFile fixtures/example.mzone
+dig +short @127.0.0.1 -p 5354 example.com
+```
+
+The code is on GitHub at [`lucasdicioccio/microdns`](https://github.com/lucasdicioccio/microdns ). It is a Haskell cabal project: the `microdns` library and the `microdns` executable.
+
+## What problem does it solve?
+
+The zeroth use-case is dynamic DNS of one's own, to track and automate some configurations. Another is to answer [ACME DNS-01 challenges](https://datatracker.ietf.org/doc/html/rfc8555#section-8.4 ) from [Let's Encrypt](https://letsencrypt.org ). More generally, microdns fits the cases where you want to expose something on top of DNS.
+
+microdns is built on the [prodapi](https://github.com/lucasdicioccio/prodapi ) package, which gives it some metrics and a somewhat uniform way of building services.
+
+Dynamic records live in memory only: they are lost when the server restarts. DNSSEC is unlikely (but why not), and PunyCode will come if some user asks politely.
+
+## How it fits together
+
+![A DNS query goes through MicroDNS.Server, the DAI interface and MicroDNS.Handler, which looks records up in the zone file and in the dynamic registrations](/gen/images/design.dot.png )
+
+The implementation resembles a modern HTTP server: a server API (`MicroDNS.DAI`), much like [WAI](https://hackage.haskell.org/package/wai ), separates servers from handlers. A single-threaded reference implementation (`MicroDNS.Server`) serves DNS over UDP. Helpers (`MicroDNS.Handler`) implement applications based on lookup functions, so that you merely have to provide an `IO [DNS.ResourceRecord]`. Finally, `MicroDNS.MicroZone` defines a zone-like parser and `MicroDNS.DynamicRegistration` provides the HTTP(S) configuration interface.
+
+## Explore
+
+- [**Getting started**](/getting-started.html ): build it, run the example, and what to think about before running it on port 53.
+
+- [**Dynamic registration**](/dynamic-registration.html ): the HTTP(S) endpoints that add records, and the HMAC that protects them.
+
+- [**MicroZone files**](/microzone-files.html ): the zone-file format for the fixed records.
+
+- Every article, by topic: [how-to](/topics/how-to.html ) and [reference](/topics/reference.html ).
+
+
+```html
+<script src="js/topicgraph.js"></script>
+```
+
+
