@@ -1,0 +1,39 @@
+<!DOCTYPE HTML><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="index, follow"><title>microdns - Dynamic registration</title><link rel="icon" type="image/x-icon" href="/microdns/images/favicon.png"><link rel="canonical" href="https://lucasdicioccio.github.io/microdns/dynamic-registration.html"><link rel="alternate" type="application/atom+xml" title="Atom Feed" href="https://lucasdicioccio.github.io/microdns/atom.xml"><meta name="author" content="Lucas DiCioccio"><meta name="keywords" content="reference, dynamic dns, acme, dns-01, http api, hmac, authentication"><meta name="description" content="The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them."><meta name="twitter:card" content="summary"><meta name="twitter:title" content="microdns - Dynamic registration"><meta name="twitter:site" content="@lucasdicioccio"><meta name="twitter:creator" content="@lucasdicioccio"><meta property="twitter:description" content="The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them."><meta name="type" property="og:type" content="article"><meta name="title" property="og:title" content="microdns - Dynamic registration"><meta property="og:site_name" content="microdns"><meta name="url" property="og:url" content="https://lucasdicioccio.github.io/microdns/dynamic-registration.html"><meta property="og:description" content="The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them."><meta name="article:published_time" content="2026-10-03T12:00:00Z"><meta name="article:modified_time" content="2026-10-03T12:00:00Z"><meta name="ks:article_json" content="/microdns/json/dynamic-registration.cmark.json"><meta name="ks:article_text" content="/microdns/text/dynamic-registration.cmark.text"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Lucas DiCioccio"},"dateModified":"2026-10-03T12:00:00Z","datePublished":"2026-10-03T12:00:00Z","description":"The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them.","headline":"Dynamic registration","mainEntityOfPage":{"@id":"https://lucasdicioccio.github.io/microdns/dynamic-registration.html","@type":"WebPage"},"publisher":{"@type":"Organization","name":"microdns"}}</script><meta name="article:tag" content="reference"><meta name="article:tag" content="dynamic dns"><meta name="article:tag" content="acme"><meta name="article:tag" content="dns-01"><meta name="article:tag" content="http api"><meta name="article:tag" content="hmac"><meta name="article:tag" content="authentication"><style>@import "/microdns/css/dev.css";@import "/microdns/css/colors.css";@import "/microdns/css/article.css";@import "/microdns/css/navigation.css";</style></head><body><nav id="site-navigation" class="nav"><a href="/microdns/" class="home-link">Home</a><div id="search-box" data-base-path="/microdns"><script type="text/javascript" src="/microdns/js/search-box.js" async></script></div></nav><div class="main"><article><header class="heading"><h1>Dynamic registration</h1><p>On <span>Sat, 03 Oct 2026</span>, by <a href="https://twitter.com/lucasdicioccio">@lucasdicioccio</a>, 173 words, 1 code snippets, 2 links, 0images.</p><div class="topiclist"><div class="topic"><span class="topic-nav topic-prev-link"><span class="topic-nav-boundary">|</span></span><a class="topic-link" href="/microdns/topics/reference.html"><span class="topic-name">reference</span><span class="topic-count">1/2</span></a><span class="topic-nav topic-next-link"><a class="topic-nav-link" href="/microdns/microzone-files.html">›</a></span></div></div></header><div class="main-article"><section class="main-section"><h2 id="dynamic-registration">Dynamic registration</h2>
+<p>Records that are not in the <a href="/microdns/microzone-files.html">MicroZone file</a> are
+registered while microdns runs, by calling its HTTP(S) API. They are kept in
+memory and lost on restart. There are only a few registrations available.</p>
+<h3 id="endpoints">Endpoints</h3>
+<p>Expose the client IP as <code>A</code> (or <code>AAAA</code> for IPv6 clients) for
+<code>${subzone}.${apex}</code>, mostly for the dynamic-DNS problem. The client IP is
+taken from the <code>x-forwarded-for</code> header if present:</p>
+<ul>
+<li><code>POST /register/auto/:subzone?apex=:apex</code>
+</li>
+</ul>
+<p>Expose <code>A</code> or <code>AAAA</code> records (the syntax follows
+<a href="https://hackage.haskell.org/package/ip-1.7.7/docs/Net-IPv4.html#v:decode"><code>Net.IPv4.decode</code> and <code>Net.IPv6.decode</code></a>):</p>
+<ul>
+<li><code>POST /register/a/:subzone/:value?apex=:apex</code>
+</li>
+<li><code>POST /register/aaaa/:subzone/:value?apex=:apex</code>
+</li>
+</ul>
+<p>Expose <code>TXT ${subzone}.${apex} ${value}</code>, mostly for ACME-challenge tokens:</p>
+<ul>
+<li><code>POST /register/txt/:subzone/:value?apex=:apex</code>
+</li>
+</ul>
+<h3 id="authentication">Authentication</h3>
+<p>An HMAC-256 with a shared secret provides a minimum of authentication (see
+<code>MicroDNS.DynamicRegistration.verifyHmac</code>). Requests carry the header:</p>
+<pre><code>x-microdns-hmac: ${base16-encode(hmac(${secret_key},${apex}${subzone}))}
+</code></pre>
+<p>In its present form, the implementation lacks nonces and only hashes the
+apex and subzone. Queries that can be spied on can therefore be modified and
+replayed. As a result, if you use the dynamic-registration API over the
+Internet, TLS should be mandatory.</p>
+<p>Note that the apex is the empty string when missing from the URL query
+parameters: it is not replaced with the one given on the command line. Said
+another way, the secret key is the only command-line parameter that
+influences the HMAC.</p>
+</section></div><footer class="footing"><div class="social-links"><a href="https://twitter.com/lucasdicioccio">twitter</a><a rel="me" href="https://fosstodon.org/@lucasdicioccio">mastodon</a><a href="https://github.com/lucasdicioccio">github</a><a href="https://linkedin.com/in/lucasdicioccio">linkedin</a></div></footer></article></div></body></html>

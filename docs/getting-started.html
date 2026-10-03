@@ -1,0 +1,64 @@
+<!DOCTYPE HTML><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="index, follow"><title>microdns - Getting started with microdns</title><link rel="icon" type="image/x-icon" href="/microdns/images/favicon.png"><link rel="canonical" href="https://lucasdicioccio.github.io/microdns/getting-started.html"><link rel="alternate" type="application/atom+xml" title="Atom Feed" href="https://lucasdicioccio.github.io/microdns/atom.xml"><meta name="author" content="Lucas DiCioccio"><meta name="keywords" content="how-to, getting started, build, cabal, run, port 53, capabilities, rate limiting"><meta name="description" content="Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53."><meta name="twitter:card" content="summary"><meta name="twitter:title" content="microdns - Getting started with microdns"><meta name="twitter:site" content="@lucasdicioccio"><meta name="twitter:creator" content="@lucasdicioccio"><meta property="twitter:description" content="Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53."><meta name="type" property="og:type" content="article"><meta name="title" property="og:title" content="microdns - Getting started with microdns"><meta property="og:site_name" content="microdns"><meta name="url" property="og:url" content="https://lucasdicioccio.github.io/microdns/getting-started.html"><meta property="og:description" content="Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53."><meta name="article:published_time" content="2026-10-03T12:00:00Z"><meta name="article:modified_time" content="2026-10-03T12:00:00Z"><meta name="ks:article_json" content="/microdns/json/getting-started.cmark.json"><meta name="ks:article_text" content="/microdns/text/getting-started.cmark.text"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Lucas DiCioccio"},"dateModified":"2026-10-03T12:00:00Z","datePublished":"2026-10-03T12:00:00Z","description":"Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53.","headline":"Getting started with microdns","mainEntityOfPage":{"@id":"https://lucasdicioccio.github.io/microdns/getting-started.html","@type":"WebPage"},"publisher":{"@type":"Organization","name":"microdns"}}</script><meta name="article:tag" content="how-to"><meta name="article:tag" content="getting started"><meta name="article:tag" content="build"><meta name="article:tag" content="cabal"><meta name="article:tag" content="run"><meta name="article:tag" content="port 53"><meta name="article:tag" content="capabilities"><meta name="article:tag" content="rate limiting"><style>@import "/microdns/css/dev.css";@import "/microdns/css/colors.css";@import "/microdns/css/article.css";@import "/microdns/css/navigation.css";</style></head><body><nav id="site-navigation" class="nav"><a href="/microdns/" class="home-link">Home</a><div id="search-box" data-base-path="/microdns"><script type="text/javascript" src="/microdns/js/search-box.js" async></script></div></nav><div class="main"><article><header class="heading"><h1>Getting started with microdns</h1><p>On <span>Sat, 03 Oct 2026</span>, by <a href="https://twitter.com/lucasdicioccio">@lucasdicioccio</a>, 307 words, 4 code snippets, 6 links, 0images.</p><div class="topiclist"><div class="topic"><span class="topic-nav topic-prev-link"><span class="topic-nav-boundary">|</span></span><a class="topic-link" href="/microdns/topics/how-to.html"><span class="topic-name">how-to</span><span class="topic-count">1/1</span></a><span class="topic-nav topic-next-link"><span class="topic-nav-boundary">|</span></span></div></div></header><div class="main-article"><section class="main-section"><h2 id="getting-started-with-microdns">Getting started with microdns</h2>
+<p>microdns serves fixed records from a file and everything else from memory.
+That is, you configure it after it has started, by calling an HTTP(S) API,
+and it loses those records if it restarts.</p>
+<h3 id="run-the-example">Run the example</h3>
+<p>microdns is a Haskell cabal project. From a checkout of
+<a href="https://github.com/lucasdicioccio/microdns">the repository</a>:</p>
+<pre><code class="language-sh">cabal update
+echo unsafe &gt; secret-web-hmac-file.txt
+cabal run -- microdns plain \
+  --dnsPort 5354 --dnsApex example.com. \
+  --webPort 3333 --webHmacSecretFile secret-web-hmac-file.txt \
+  --zoneFile fixtures/example.mzone
+</code></pre>
+<p>Then, from another terminal:</p>
+<pre><code class="language-sh">dig +short @127.0.0.1 -p 5354 example.com
+</code></pre>
+<p>answers <code>1.2.3.4</code>, the <code>A</code> record in
+<a href="https://github.com/lucasdicioccio/microdns/blob/main/fixtures/example.mzone"><code>fixtures/example.mzone</code></a>.</p>
+<p>The options are:</p>
+<ul>
+<li><code>--dnsPort</code>: the UDP port answering DNS queries.
+</li>
+<li><code>--dnsApex</code>: the delegated DNS apex.
+</li>
+<li><code>--webPort</code>: the TCP port of the configuration API.
+</li>
+<li><code>--webHmacSecretFile</code>: the file holding the shared secret that
+authenticates <a href="/microdns/dynamic-registration.html">dynamic registrations</a>.
+</li>
+<li><code>--zoneFile</code>: the <a href="/microdns/microzone-files.html">MicroZone file</a> with the fixed
+records.
+</li>
+</ul>
+<p>The <code>tls</code> command takes the same options plus <code>--certFile</code> and <code>--keyFile</code>,
+and serves the configuration API over HTTPS.</p>
+<h3 id="running-it-for-real">Running it for real</h3>
+<p>Unless you have really good reasons not to, run microdns on UDP port 53. You
+also need to listen on a TCP port of your choice for configuration requests.
+Use TLS to protect the API calls: the current code is sensitive to replay
+attacks.</p>
+<p>The HMAC mechanism is not very strong, so you should probably not expose the
+configuration API on the Internet if your domain is a sensitive target. For
+tech-savvy individuals with low-profile blogs, it is probably enough.</p>
+<p>Assuming some Linux, the best is to run chrooted, with only enough
+privileges to do networking and read the certificate and HMAC files.</p>
+<p>Say <code>microdns</code> is installed in <code>/usr/local/bin</code>: you can grant the binary
+the right to listen on port 53 even for non-root users with Linux
+capabilities (<code>man 7 capabilities</code>).</p>
+<pre><code class="language-console">setcap 'cap_net_bind_service=+ep' /usr/local/bin/microdns
+</code></pre>
+<p>Also consider rate-limiting incoming and outgoing UDP, as DNS over UDP is
+prone to abuse. An example rate limit, using netfilter:</p>
+<pre><code class="language-console">nft add rule inet filter input udp dport 53 limit rate over 10/second drop
+</code></pre>
+<h3 id="where-to-go-next">Where to go next</h3>
+<ul>
+<li><a href="/microdns/dynamic-registration.html">Dynamic registration</a>: add records over
+HTTP(S).
+</li>
+<li><a href="/microdns/microzone-files.html">MicroZone files</a>: the format of the fixed records.
+</li>
+</ul>
+</section></div><footer class="footing"><div class="social-links"><a href="https://twitter.com/lucasdicioccio">twitter</a><a rel="me" href="https://fosstodon.org/@lucasdicioccio">mastodon</a><a href="https://github.com/lucasdicioccio">github</a><a href="https://linkedin.com/in/lucasdicioccio">linkedin</a></div></footer></article></div></body></html>

@@ -1,0 +1,58 @@
+<!DOCTYPE HTML><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="index, follow"><title>microdns - microdns</title><link rel="icon" type="image/x-icon" href="/microdns/images/favicon.png"><link rel="canonical" href="https://lucasdicioccio.github.io/microdns/index.html"><link rel="alternate" type="application/atom+xml" title="Atom Feed" href="https://lucasdicioccio.github.io/microdns/atom.xml"><meta name="author" content="Lucas DiCioccio"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="microdns - microdns"><meta name="twitter:site" content="@lucasdicioccio"><meta name="type" property="og:type" content="article"><meta name="title" property="og:title" content="microdns - microdns"><meta property="og:site_name" content="microdns"><meta name="url" property="og:url" content="https://lucasdicioccio.github.io/microdns/index.html"><meta name="article:published_time" content="2026-10-03T12:00:00Z"><meta name="article:modified_time" content="2026-10-03T12:00:00Z"><meta name="ks:article_json" content="/microdns/json/index.cmark.json"><meta name="ks:article_text" content="/microdns/text/index.cmark.text"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Lucas DiCioccio"},"dateModified":"2026-10-03T12:00:00Z","datePublished":"2026-10-03T12:00:00Z","headline":"microdns","mainEntityOfPage":{"@id":"https://lucasdicioccio.github.io/microdns/index.html","@type":"WebPage"},"publisher":{"@type":"Organization","name":"microdns"}}</script><style>@import "/microdns/css/colors.css";@import "/microdns/css/navigation.css";@import "/microdns/css/articles-listing.css";@import "/microdns/css/index.css";</style></head><body><nav id="site-navigation" class="nav"><a href="/microdns/" class="home-link">Home</a><div id="search-box" data-base-path="/microdns"><script type="text/javascript" src="/microdns/js/search-box.js" async></script></div></nav><div class="main"><article><div class="main-article"><section class="main-section"><h2 id="microdns">microdns</h2>
+<p>A minimalist authoritative DNS server. It serves fixed records from a small
+zone file and everything else from memory: you add records while it runs by
+calling an HTTP(S) API, authenticated with a shared-secret HMAC.</p>
+<pre><code class="language-sh">cabal run -- microdns plain \
+  --dnsPort 5354 --dnsApex example.com. \
+  --webPort 3333 --webHmacSecretFile secret-web-hmac-file.txt \
+  --zoneFile fixtures/example.mzone
+dig +short @127.0.0.1 -p 5354 example.com
+</code></pre>
+<p>The code is on GitHub at
+<a href="https://github.com/lucasdicioccio/microdns"><code>lucasdicioccio/microdns</code></a>. It
+is a Haskell cabal project: the <code>microdns</code> library and the <code>microdns</code>
+executable.</p>
+<h3 id="what-problem-does-it-solve">What problem does it solve?</h3>
+<p>The zeroth use-case is dynamic DNS of one’s own, to track and automate some
+configurations. Another is to answer
+<a href="https://datatracker.ietf.org/doc/html/rfc8555#section-8.4">ACME DNS-01 challenges</a>
+from <a href="https://letsencrypt.org">Let’s Encrypt</a>. More generally, microdns fits
+the cases where you want to expose something on top of DNS.</p>
+<p>microdns is built on the
+<a href="https://github.com/lucasdicioccio/prodapi">prodapi</a> package, which gives it
+some metrics and a somewhat uniform way of building services.</p>
+<p>Dynamic records live in memory only: they are lost when the server restarts.
+DNSSEC is unlikely (but why not), and PunyCode will come if some user asks
+politely.</p>
+<h3 id="how-it-fits-together">How it fits together</h3>
+<p><img src="/microdns/gen/images/design.dot.png" alt="A DNS query goes through MicroDNS.Server, the DAI interface and MicroDNS.Handler, which looks records up in the zone file and in the dynamic registrations" /></p>
+<p>The implementation resembles a modern HTTP server: a server API
+(<code>MicroDNS.DAI</code>), much like
+<a href="https://hackage.haskell.org/package/wai">WAI</a>, separates servers from
+handlers. A single-threaded reference implementation (<code>MicroDNS.Server</code>)
+serves DNS over UDP. Helpers (<code>MicroDNS.Handler</code>) implement applications
+based on lookup functions, so that you merely have to provide an
+<code>IO [DNS.ResourceRecord]</code>. Finally, <code>MicroDNS.MicroZone</code> defines a zone-like
+parser and <code>MicroDNS.DynamicRegistration</code> provides the HTTP(S) configuration
+interface.</p>
+<h3 id="explore">Explore</h3>
+<ul>
+<li><a href="/microdns/getting-started.html"><strong>Getting started</strong></a>: build it, run the example,
+and what to think about before running it on port 53.
+</li>
+<li><a href="/microdns/dynamic-registration.html"><strong>Dynamic registration</strong></a>: the HTTP(S)
+endpoints that add records, and the HMAC that protects them.
+</li>
+<li><a href="/microdns/microzone-files.html"><strong>MicroZone files</strong></a>: the zone-file format for the
+fixed records.
+</li>
+<li>Every article, by topic: <a href="/microdns/topics/how-to.html">how-to</a> and
+<a href="/microdns/topics/reference.html">reference</a>.
+</li>
+</ul>
+<script src="js/topicgraph.js"></script>
+</section></div><nav class="articles-listing"><h2 class="listing-callout">latest article</h2><div class="articles-listing-list"><div class="articles-listing-item article-status-published"><span class="article-date">Sat, 03 Oct 2026</span><div><a href="/microdns/microzone-files.html">MicroZone files</a><div class="article-summary"><div class="article-stats"><p>191 words / 2 links / 0 images / 1 snippets</p></div><div class="article-image"></div><p>The zone-file format microdns reads its fixed records from: the supported record types, the apex syntax, and a commented example.</p>
+</div></div></div></div></nav><nav class="articles-graph"><h2 class="listing-callout">site map</h2><div id="echartzone" data-base-path="/microdns" style="width:800px;height:600px;"></div></nav><nav class="articles-listing"><h2 class="listing-callout">all articles</h2><div class="articles-listing-list"><div class="articles-listing-item article-status-published"><span class="article-date">Sat, 03 Oct 2026</span><div><a href="/microdns/microzone-files.html">MicroZone files</a><div class="article-summary"><div class="article-stats"><p>191 words / 2 links / 0 images / 1 snippets</p></div><div class="article-image"></div><p>The zone-file format microdns reads its fixed records from: the supported record types, the apex syntax, and a commented example.</p>
+</div></div></div><div class="articles-listing-item article-status-published"><span class="article-date">Sat, 03 Oct 2026</span><div><a href="/microdns/getting-started.html">Getting started with microdns</a><div class="article-summary"><div class="article-stats"><p>307 words / 6 links / 0 images / 4 snippets</p></div><div class="article-image"></div><p>Build microdns with cabal, run it locally against the example zone file, and what to set up before running it on UDP port 53.</p>
+</div></div></div><div class="articles-listing-item article-status-published"><span class="article-date">Sat, 03 Oct 2026</span><div><a href="/microdns/dynamic-registration.html">Dynamic registration</a><div class="article-summary"><div class="article-stats"><p>173 words / 2 links / 0 images / 1 snippets</p></div><div class="article-image"></div><p>The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them.</p>
+</div></div></div></div></nav><nav class="topics-listing"><h2 class="listing-callout">by topic</h2><div class="topics-listing-list"><div class="topics-listing-list-topic"><strong class="topic-name">how-to</strong><ul class="article-links-list"><li class="article-links-list-item"><a href="/microdns/getting-started.html">Getting started with microdns</a></li></ul></div><div class="topics-listing-list-topic"><strong class="topic-name">reference</strong><ul class="article-links-list"><li class="article-links-list-item"><a href="/microdns/dynamic-registration.html">Dynamic registration</a></li><li class="article-links-list-item"><a href="/microdns/microzone-files.html">MicroZone files</a></li></ul></div></div></nav></article></div></body></html>

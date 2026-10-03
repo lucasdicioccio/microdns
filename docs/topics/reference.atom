@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title type="text">microdns</title><id>https://lucasdicioccio.github.io/microdns/atom.xml</id><updated>2026-10-03T12:00:00Z</updated><entry><id>https://lucasdicioccio.github.io/microdns/dynamic-registration.html</id><title type="text">Dynamic registration</title><updated>2026-10-03T12:00:00Z</updated><author><name>Lucas DiCioccio</name></author><content type="html">&lt;div class="main-article"&gt;&lt;section class="main-section"&gt;&lt;h2 id="dynamic-registration"&gt;Dynamic registration&lt;/h2&gt;
+&lt;p&gt;Records that are not in the &lt;a href="/microdns/microzone-files.html"&gt;MicroZone file&lt;/a&gt; are
+registered while microdns runs, by calling its HTTP(S) API. They are kept in
+memory and lost on restart. There are only a few registrations available.&lt;/p&gt;
+&lt;h3 id="endpoints"&gt;Endpoints&lt;/h3&gt;
+&lt;p&gt;Expose the client IP as &lt;code&gt;A&lt;/code&gt; (or &lt;code&gt;AAAA&lt;/code&gt; for IPv6 clients) for
+&lt;code&gt;${subzone}.${apex}&lt;/code&gt;, mostly for the dynamic-DNS problem. The client IP is
+taken from the &lt;code&gt;x-forwarded-for&lt;/code&gt; header if present:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;POST /register/auto/:subzone?apex=:apex&lt;/code&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Expose &lt;code&gt;A&lt;/code&gt; or &lt;code&gt;AAAA&lt;/code&gt; records (the syntax follows
+&lt;a href="https://hackage.haskell.org/package/ip-1.7.7/docs/Net-IPv4.html#v:decode"&gt;&lt;code&gt;Net.IPv4.decode&lt;/code&gt; and &lt;code&gt;Net.IPv6.decode&lt;/code&gt;&lt;/a&gt;):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;POST /register/a/:subzone/:value?apex=:apex&lt;/code&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;POST /register/aaaa/:subzone/:value?apex=:apex&lt;/code&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Expose &lt;code&gt;TXT ${subzone}.${apex} ${value}&lt;/code&gt;, mostly for ACME-challenge tokens:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;POST /register/txt/:subzone/:value?apex=:apex&lt;/code&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="authentication"&gt;Authentication&lt;/h3&gt;
+&lt;p&gt;An HMAC-256 with a shared secret provides a minimum of authentication (see
+&lt;code&gt;MicroDNS.DynamicRegistration.verifyHmac&lt;/code&gt;). Requests carry the header:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;x-microdns-hmac: ${base16-encode(hmac(${secret_key},${apex}${subzone}))}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In its present form, the implementation lacks nonces and only hashes the
+apex and subzone. Queries that can be spied on can therefore be modified and
+replayed. As a result, if you use the dynamic-registration API over the
+Internet, TLS should be mandatory.&lt;/p&gt;
+&lt;p&gt;Note that the apex is the empty string when missing from the URL query
+parameters: it is not replaced with the one given on the command line. Said
+another way, the secret key is the only command-line parameter that
+influences the HMAC.&lt;/p&gt;
+&lt;/section&gt;&lt;/div&gt;</content><link href="https://lucasdicioccio.github.io/microdns/dynamic-registration.html" rel="alternate"/><summary type="text">The HTTP(S) endpoints that add A, AAAA and TXT records to a running microdns, and the shared-secret HMAC that authenticates them.</summary></entry><entry><id>https://lucasdicioccio.github.io/microdns/microzone-files.html</id><title type="text">MicroZone files</title><updated>2026-10-03T12:00:00Z</updated><author><name>Lucas DiCioccio</name></author><content type="html">&lt;div class="main-article"&gt;&lt;section class="main-section"&gt;&lt;h2 id="microzone-files"&gt;MicroZone files&lt;/h2&gt;
+&lt;p&gt;microdns uses its own zone-file format, with limited support for DNS records:
+all TTLs are 300, and there is no support for the CHAOS class, for instance.
+The file is given with &lt;code&gt;--zoneFile&lt;/code&gt; and read at startup; see
+&lt;a href="/microdns/getting-started.html"&gt;Getting started&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;An example file, with comments, is as follows. It is the repository’s
+&lt;a href="https://github.com/lucasdicioccio/microdns/blob/main/fixtures/example.mzone"&gt;&lt;code&gt;fixtures/example.mzone&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;-- comments start with &amp;quot;--&amp;quot;
+-- all records have fixed TTL to 300
+-- there are no wildcards
+-- the @ special syntax replaces the current apex in some records (from the commandline or overriden)
+-- otherwise, all domain names are fqdns
+
+-- A and AAAA records
+A example.com. 1.2.3.4
+AAAA example.com. ::1.2.3.4
+
+-- TXT wants quoted strings
+TXT example.com. &amp;quot;microdns has \&amp;quot;quoted\&amp;quot; strings with \\ (backslashes)&amp;quot;
+TXT @ &amp;quot;apex syntax&amp;quot;
+
+-- CAA has two quoted strings
+CAA example.com. &amp;quot;issue&amp;quot; &amp;quot;letsencrypt&amp;quot;
+
+-- MX
+
+MX example.com. 10 1.2.3.4
+MX example.com. 100 spool.example.com.
+
+-- CNAME
+
+CNAME dir.example.com. directory.example.com
+
+-- SRV have only priority
+SRV _altweb._tcp.example.com. 10 8080 1.2.3.4
+
+microdns:apex other.example.com.
+
+TXT @ &amp;quot;apex syntax in other.example.com.&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;microdns:apex&lt;/code&gt; directive changes the apex that &lt;code&gt;@&lt;/code&gt; stands for in the
+records that follow it; before any such directive, &lt;code&gt;@&lt;/code&gt; is the apex given on
+the command line with &lt;code&gt;--dnsApex&lt;/code&gt;.&lt;/p&gt;
+&lt;/section&gt;&lt;/div&gt;</content><link href="https://lucasdicioccio.github.io/microdns/microzone-files.html" rel="alternate"/><summary type="text">The zone-file format microdns reads its fixed records from: the supported record types, the apex syntax, and a commented example.</summary></entry></feed>

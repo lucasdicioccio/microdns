@@ -168,6 +168,17 @@ cabal run -- microdns plain --dnsPort 5454 --dnsApex example.com. --webHmacSecre
 
 then `dig +short @127.0.0.1 -p5354 example.com 1.2.3.4` .
 
+## Website
+
+The site in [`website/`](website) is a [Kitchen-Sink](https://kitchensink-tech.github.io/)
+project, the same shape as agents-exe's: `website/src/` is the source and
+`docs/` is what GitHub Pages serves. To preview and publish it:
+
+```sh
+kitchen-sink serve --srcDir website/src --outDir website/www --servMode DEV --httpPort 7655
+./website/scripts/publish.sh            # produce into docs/ for publishing; commit the result
+```
+
 ## TODO list
 
 - dns-zones
