@@ -14,6 +14,8 @@
 
 # microdns
 
+*microdns, because small services can also create large outages.*
+
 A minimalist authoritative DNS server. It serves fixed records from a small
 zone file and everything else from memory: you add records while it runs by
 calling an HTTP(S) API, authenticated with a shared-secret HMAC.
