@@ -2,6 +2,5 @@
 , "publishURL": "https://lucasdicioccio.github.io"
 , "basePath": "/microdns"
 , "twitterLogin": "lucasdicioccio"
-, "commands": []
 , "api": {"tag":"NoProxying"}
 }
