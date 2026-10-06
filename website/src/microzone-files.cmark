@@ -1,6 +1,8 @@
 =base:build-info.json
-{"layout":"article"
+{"layout":"documentation"
 ,"publicationStatus":"Public"
+,"group":"Reference"
+,"order":1
 }
 
 =base:preamble.json
@@ -84,5 +86,6 @@ the command line with `--dnsApex`.
   , "@import \"`$ctx.pathPrefix`/css/colors.css\";"
   , "@import \"`$ctx.pathPrefix`/css/article.css\";"
   , "@import \"`$ctx.pathPrefix`/css/navigation.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/documentation.css\";"
   ]
 }

@@ -1,6 +1,8 @@
 =base:build-info.json
-{"layout":"article"
+{"layout":"documentation"
 ,"publicationStatus":"Public"
+,"group":"Getting started"
+,"order":1
 }
 
 =base:preamble.json
@@ -112,5 +114,6 @@ nft add rule inet filter input udp dport 53 limit rate over 10/second drop
   , "@import \"`$ctx.pathPrefix`/css/colors.css\";"
   , "@import \"`$ctx.pathPrefix`/css/article.css\";"
   , "@import \"`$ctx.pathPrefix`/css/navigation.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/documentation.css\";"
   ]
 }
