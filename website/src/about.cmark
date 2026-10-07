@@ -1,0 +1,64 @@
+=base:build-info.json
+{"layout":"documentation"
+,"publicationStatus":"Public"
+,"group":"About"
+,"order":1
+}
+
+=base:preamble.json
+{"author": "Lucas DiCioccio"
+,"date": "2026-10-07T12:00:00Z"
+,"title": "About"
+,"imageLink": "/gen/images/design.dot.png"
+}
+
+=base:topic.json
+{"topics":["reference"]
+,"keywords":["about", "author", "kitchen-sink"]
+}
+
+=base:social.json
+{"twitter": "lucasdicioccio"
+,"linkedin": "lucasdicioccio"
+,"github": "lucasdicioccio"
+,"mastodon": "https://fosstodon.org/@lucasdicioccio"
+}
+
+=base:summary.cmark
+Who makes microdns and how this website is built.
+
+=base:main-content.cmark
+
+# About
+
+microdns is written by [Lucas DiCioccio](https://dicioccio.fr), who blogs at
+[dicioccio.fr](https://dicioccio.fr). The code is on GitHub at
+[`lucasdicioccio/microdns`](https://github.com/lucasdicioccio/microdns).
+
+## This website
+
+This website is generated with
+[kitchen-sink](https://kitchensink-tech.github.io), a static-site generator
+written in Haskell. The sources live in `website/src/` and the published
+result in `docs/`, which GitHub Pages serves. To learn more about
+kitchen-sink itself, see its
+[website](https://kitchensink-tech.github.io) and its
+[repository](https://github.com/kitchensink-tech/kitchensink).
+
+## Elsewhere
+
+- [**kitchen-sink**](https://kitchensink-tech.github.io): the generator
+  behind this site.
+- [**dicioccio.fr**](https://dicioccio.fr): the author's blog.
+
+=base:main-css.tramaj-json
+{ "format": "css"
+, "contents":
+  [ ""
+  , "@import \"`$ctx.pathPrefix`/css/dev.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/colors.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/article.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/navigation.css\";"
+  , "@import \"`$ctx.pathPrefix`/css/documentation.css\";"
+  ]
+}

@@ -2,3 +2,4 @@ https://lucasdicioccio.github.io/microdns/microzone-files.html
 https://lucasdicioccio.github.io/microdns/getting-started.html
 https://lucasdicioccio.github.io/microdns/dynamic-registration.html
 https://lucasdicioccio.github.io/microdns/index.html
+https://lucasdicioccio.github.io/microdns/about.html
