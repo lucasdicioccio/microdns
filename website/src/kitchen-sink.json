@@ -2,5 +2,9 @@
 , "publishURL": "https://lucasdicioccio.github.io"
 , "basePath": "/microdns"
 , "twitterLogin": "lucasdicioccio"
+, "linkedSites":
+  [ {"baseURL": "https://kitchensink-tech.github.io", "siteTitle": "kitchen-sink — the static-site generator behind this website.", "siteType": "kitchen-sink"}
+  , {"baseURL": "https://dicioccio.fr/", "siteTitle": "Lucas' blog.", "siteType": "kitchen-sink"}
+  ]
 , "api": {"tag":"NoProxying"}
 }

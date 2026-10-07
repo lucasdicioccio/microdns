@@ -1,4 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title type="text">microdns</title><id>https://lucasdicioccio.github.io/microdns/atom.xml</id><updated>2026-10-03T12:00:00Z</updated><entry><id>https://lucasdicioccio.github.io/microdns/dynamic-registration.html</id><title type="text">Dynamic registration</title><updated>2026-10-03T12:00:00Z</updated><author><name>Lucas DiCioccio</name></author><content type="html">&lt;div class="main-article"&gt;&lt;section class="main-section"&gt;&lt;h2 id="dynamic-registration"&gt;Dynamic registration&lt;/h2&gt;
+<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title type="text">microdns</title><id>https://lucasdicioccio.github.io/microdns/atom.xml</id><updated>2026-10-07T12:00:00Z</updated><entry><id>https://lucasdicioccio.github.io/microdns/about.html</id><title type="text">About</title><updated>2026-10-07T12:00:00Z</updated><author><name>Lucas DiCioccio</name></author><content type="html">&lt;div class="main-article"&gt;&lt;section class="main-section"&gt;&lt;h2 id="about"&gt;About&lt;/h2&gt;
+&lt;p&gt;microdns is written by &lt;a href="https://dicioccio.fr"&gt;Lucas DiCioccio&lt;/a&gt;, who blogs at
+&lt;a href="https://dicioccio.fr"&gt;dicioccio.fr&lt;/a&gt;. The code is on GitHub at
+&lt;a href="https://github.com/lucasdicioccio/microdns"&gt;&lt;code&gt;lucasdicioccio/microdns&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;h3 id="this-website"&gt;This website&lt;/h3&gt;
+&lt;p&gt;This website is generated with
+&lt;a href="https://kitchensink-tech.github.io"&gt;kitchen-sink&lt;/a&gt;, a static-site generator
+written in Haskell. The sources live in &lt;code&gt;website/src/&lt;/code&gt; and the published
+result in &lt;code&gt;docs/&lt;/code&gt;, which GitHub Pages serves. To learn more about
+kitchen-sink itself, see its
+&lt;a href="https://kitchensink-tech.github.io"&gt;website&lt;/a&gt; and its
+&lt;a href="https://github.com/kitchensink-tech/kitchensink"&gt;repository&lt;/a&gt;.&lt;/p&gt;
+&lt;h3 id="elsewhere"&gt;Elsewhere&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://kitchensink-tech.github.io"&gt;&lt;strong&gt;kitchen-sink&lt;/strong&gt;&lt;/a&gt;: the generator
+behind this site.
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://dicioccio.fr"&gt;&lt;strong&gt;dicioccio.fr&lt;/strong&gt;&lt;/a&gt;: the author’s blog.
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/section&gt;&lt;/div&gt;</content><link href="https://lucasdicioccio.github.io/microdns/about.html" rel="alternate"/><summary type="text">Who makes microdns and how this website is built.</summary></entry><entry><id>https://lucasdicioccio.github.io/microdns/dynamic-registration.html</id><title type="text">Dynamic registration</title><updated>2026-10-03T12:00:00Z</updated><author><name>Lucas DiCioccio</name></author><content type="html">&lt;div class="main-article"&gt;&lt;section class="main-section"&gt;&lt;h2 id="dynamic-registration"&gt;Dynamic registration&lt;/h2&gt;
 &lt;p&gt;Records that are not in the &lt;a href="/microdns/microzone-files.html"&gt;MicroZone file&lt;/a&gt; are
 registered while microdns runs, by calling its HTTP(S) API. They are kept in
 memory and lost on restart. There are only a few registrations available.&lt;/p&gt;

@@ -1,0 +1,16 @@
+# About
+
+microdns is written by [Lucas DiCioccio](https://dicioccio.fr ), who blogs at [dicioccio.fr](https://dicioccio.fr ). The code is on GitHub at [`lucasdicioccio/microdns`](https://github.com/lucasdicioccio/microdns ).
+
+## This website
+
+This website is generated with [kitchen-sink](https://kitchensink-tech.github.io ), a static-site generator written in Haskell. The sources live in `website/src/` and the published result in `docs/`, which GitHub Pages serves. To learn more about kitchen-sink itself, see its [website](https://kitchensink-tech.github.io ) and its [repository](https://github.com/kitchensink-tech/kitchensink ).
+
+## Elsewhere
+
+- [**kitchen-sink**](https://kitchensink-tech.github.io ): the generator behind this site.
+
+- [**dicioccio.fr**](https://dicioccio.fr ): the author's blog.
+
+
+

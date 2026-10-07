@@ -36,6 +36,8 @@ The implementation resembles a modern HTTP server: a server API (`MicroDNS.DAI`)
 
 - [**MicroZone files**](/microzone-files.html ): the zone-file format for the fixed records.
 
+- [**About**](/about.html ): who makes microdns, and the sites around it.
+
 - Every article, by topic: [how-to](/topics/how-to.html ) and [reference](/topics/reference.html ).
 
 
